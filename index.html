@@ -3,668 +3,188 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kirwa Collins — Software Architect</title>
+  <title>Kirwa Collins | Software Architect</title>
   <style>
+    :root { --accent: #00f2ff; --bg: #050507; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#1a1a2e; overflow:hidden; font-family:'Segoe UI',sans-serif; cursor:none; }
+    body { background: var(--bg); overflow:hidden; font-family:'Inter', sans-serif; cursor:crosshair; color:#fff; }
 
-    #loading {
-      position:fixed; inset:0; background:#1a1a2e;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      z-index:1000; transition:opacity 1s ease;
-    }
-    .load-title {
-      font-size:48px; font-weight:900; color:#fff; letter-spacing:-2px;
-      margin-bottom:8px; opacity:0; animation:fadeIn .8s ease .2s forwards;
-    }
-    .load-sub {
-      font-size:14px; color:rgba(255,255,255,0.4); letter-spacing:4px;
-      text-transform:uppercase; margin-bottom:48px;
-      opacity:0; animation:fadeIn .8s ease .5s forwards;
-    }
-    .load-bar-wrap {
-      width:200px; height:2px; background:rgba(255,255,255,0.1); border-radius:2px;
-      opacity:0; animation:fadeIn .5s ease .8s forwards;
-    }
-    .load-bar {
-      height:100%; background:#fff; border-radius:2px; width:0;
-      transition:width .3s ease;
-    }
-    .load-hint {
-      margin-top:24px; font-size:11px; color:rgba(255,255,255,0.3);
-      letter-spacing:2px; text-transform:uppercase;
-      opacity:0; animation:fadeIn .5s ease 1s forwards;
-    }
-
-    #canvas-wrap { position:fixed; inset:0; }
-    canvas { display:block; }
-
-    /* Custom cursor */
-    #cursor {
-      width:12px; height:12px; background:#fff; border-radius:50%;
-      position:fixed; pointer-events:none; z-index:500;
-      transform:translate(-50%,-50%); mix-blend-mode:difference;
-      transition:width .2s, height .2s;
-    }
-
-    /* Controls hint */
-    #controls {
-      position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
-      display:flex; gap:16px; align-items:center;
-      background:rgba(0,0,0,0.4); backdrop-filter:blur(10px);
-      padding:12px 24px; border-radius:100px;
-      border:1px solid rgba(255,255,255,0.1);
-      z-index:100; opacity:0; transition:opacity .5s;
-    }
-    .key {
-      width:28px; height:28px; background:rgba(255,255,255,0.1);
-      border:1px solid rgba(255,255,255,0.2); border-radius:6px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:12px; color:#fff; font-weight:600;
-    }
-    .ctrl-label { font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:1px; }
-
-    /* Info panels */
+    /* Glassmorphism UI */
     .info-panel {
       position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.9);
-      background:rgba(10,10,20,0.95); backdrop-filter:blur(20px);
-      border:1px solid rgba(255,255,255,0.1); border-radius:16px;
-      padding:48px; max-width:560px; width:90%;
-      z-index:200; opacity:0; pointer-events:none;
-      transition:all .4s cubic-bezier(0.34,1.56,0.64,1);
+      background: rgba(10, 10, 20, 0.7); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px;
+      padding:40px; max-width:500px; width:90%; z-index:200; opacity:0; 
+      pointer-events:none; transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     }
-    .info-panel.active {
-      opacity:1; pointer-events:all;
-      transform:translate(-50%,-50%) scale(1);
-    }
-    .panel-close {
-      position:absolute; top:16px; right:20px;
-      background:none; border:none; color:rgba(255,255,255,0.4);
-      font-size:24px; cursor:pointer; transition:color .2s;
-    }
-    .panel-close:hover { color:#fff; }
-    .panel-tag {
-      font-size:10px; letter-spacing:3px; text-transform:uppercase;
-      color:var(--accent,#7dd3fc); margin-bottom:12px;
-    }
-    .panel-title {
-      font-size:28px; font-weight:800; color:#fff;
-      margin-bottom:16px; line-height:1.2; letter-spacing:-0.5px;
-    }
-    .panel-body { font-size:14px; color:rgba(255,255,255,0.6); line-height:1.8; }
-    .panel-body strong { color:#fff; }
-    .panel-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
-    .ptag {
-      font-size:10px; padding:4px 12px; border-radius:100px;
-      background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
-      color:rgba(255,255,255,0.7); letter-spacing:.5px;
-    }
+    .info-panel.active { opacity:1; pointer-events:all; transform:translate(-50%,-50%) scale(1); }
+    
+    #nameplate { position:fixed; top:40px; left:40px; z-index:100; }
+    .nm { font-size:24px; font-weight:900; letter-spacing:-1px; text-transform:uppercase; }
+    .nr { font-size:10px; color:var(--accent); letter-spacing:4px; margin-top:4px; opacity:0.8; }
 
-    /* Name overlay */
-    #nameplate {
-      position:fixed; top:32px; left:40px; z-index:100;
-      opacity:0; transition:opacity .5s;
-    }
-    #nameplate .nm { font-size:20px; font-weight:800; color:#fff; letter-spacing:-0.5px; }
-    #nameplate .nr { font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
-
-    /* Music button */
-    #music-btn {
-      position:fixed; top:32px; right:40px; z-index:100;
-      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
-      border-radius:100px; padding:8px 16px;
-      color:#fff; font-size:12px; cursor:pointer; letter-spacing:1px;
-      display:flex; align-items:center; gap:8px;
-      opacity:0; transition:all .3s;
-    }
-    #music-btn:hover { background:rgba(255,255,255,0.15); }
-    .music-icon { font-size:16px; }
-
-    /* Zone label */
     #zone-label {
-      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-      font-size:13px; letter-spacing:4px; text-transform:uppercase;
-      color:rgba(255,255,255,0.6); pointer-events:none;
-      opacity:0; transition:opacity .5s; z-index:100;
-      text-shadow:0 0 20px rgba(255,255,255,0.3);
+      position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+      font-size:11px; letter-spacing:8px; color:var(--accent);
+      text-transform:uppercase; opacity:0; transition:0.5s; pointer-events:none;
     }
 
-    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .ptag { font-size:10px; padding:4px 10px; border:1px solid rgba(0,242,255,0.3); border-radius:4px; color:var(--accent); margin:4px; display:inline-block; }
+    
+    #controls {
+      position:fixed; bottom:40px; left:50%; transform:translateX(-50%);
+      display:flex; gap:20px; font-size:10px; letter-spacing:2px; opacity:0.5;
+    }
+    button { background:none; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:8px 16px; cursor:pointer; border-radius:4px; transition: 0.3s; }
+    button:hover { background: var(--accent); color: #000; border-color: var(--accent); }
   </style>
 </head>
 <body>
 
-<!-- Loading screen -->
-<div id="loading">
-  <div class="load-title">Kirwa Collins</div>
-  <div class="load-sub">Software Architect & Full-Stack Engineer</div>
-  <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
-  <div class="load-hint">Loading world...</div>
-</div>
-
-<!-- Cursor -->
-<div id="cursor"></div>
-
-<!-- Canvas -->
-<div id="canvas-wrap"><canvas id="c"></canvas></div>
-
-<!-- Nameplate -->
 <div id="nameplate">
   <div class="nm">Kirwa Collins</div>
   <div class="nr">Software Architect</div>
 </div>
 
-<!-- Music -->
-<button id="music-btn" onclick="toggleMusic()">
-  <span class="music-icon">♪</span>
-  <span id="music-label">Play Hymn</span>
-</button>
+<div id="zone-label">Approach Monolith</div>
 
-<!-- Controls -->
 <div id="controls">
-  <div class="key">↑</div><div class="key">↓</div><div class="key">←</div><div class="key">→</div>
-  <div class="ctrl-label">Drive to explore</div>
-  <div style="width:1px;height:20px;background:rgba(255,255,255,0.1)"></div>
-  <div class="key" style="width:auto;padding:0 10px">Space</div>
-  <div class="ctrl-label">Enter zone</div>
+  <span>WASD / ARROWS TO NAVIGATE</span>
+  <span>SPACE TO ENTER</span>
 </div>
 
-<!-- Zone label -->
-<div id="zone-label" id="zoneLabel"></div>
-
-<!-- PANELS -->
-<div class="info-panel" id="panel-about" style="--accent:#7dd3fc">
-  <button class="panel-close" onclick="closePanel('about')">×</button>
-  <div class="panel-tag">About Me</div>
-  <div class="panel-title">Kirwa Collins</div>
-  <div class="panel-body">
-    Software Architect & Full-Stack Engineer with <strong>5+ years</strong> of experience building scalable web systems across Kenya, India, and the USA.<br><br>
-    Currently <strong>Backend Engineer @ AVB Invest Inc, New York (Remote)</strong>. BSc. Information Technology, Technical University of Kenya.<br><br>
-    I architect systems, lead teams, and ship software that works in the real world.
-  </div>
-  <div class="panel-tags">
-    <span class="ptag">Nairobi, Kenya 🇰🇪</span>
-    <span class="ptag">5+ Years Experience</span>
-    <span class="ptag">Available for hire</span>
-    <span class="ptag">Remote-friendly</span>
-  </div>
+<div class="info-panel" id="panel-about">
+  <h2 style="color:var(--accent)">System Architect</h2>
+  <p style="margin:20px 0; line-height:1.6; color:rgba(255,255,255,0.7)">
+    Architecting robust backends and distributed systems. Currently engineering at <strong>AVB Invest Inc, New York</strong>.
+  </p>
+  <div class="ptag">Nairobi, KE</div><div class="ptag">Cloud Architecture</div>
+  <button onclick="closeAll()" style="margin-top:20px; width:100%">Return to Void</button>
 </div>
 
-<div class="info-panel" id="panel-projects" style="--accent:#86efac">
-  <button class="panel-close" onclick="closePanel('projects')">×</button>
-  <div class="panel-tag">Projects</div>
-  <div class="panel-title">Things I've Built</div>
-  <div class="panel-body">
-    <strong>Guest Connect (2025)</strong> — Speaker booking platform. 100+ bookings/month. Next.js, Django, Docker, GCP.<br><br>
-    <strong>AI Learning Management System (2025)</strong> — Student engagement +40%, career accuracy 85%. React, Firebase, OpenAI.<br><br>
-    <strong>Real Estate Platform (2024)</strong> — Load balanced, Nginx, JWT, Celery. Fully functional.<br><br>
-    <strong>Car Booking App (2023)</strong> — 50+ bookings/month. Next.js, TypeScript, TailwindCSS.<br><br>
-    <strong>EarthRanger & Digital BookShelf (2022)</strong> — Geo app + NYT Books API.
+<div class="info-panel" id="panel-projects">
+  <h2 style="color:var(--accent)">Core Deployments</h2>
+  <div style="font-size:14px; opacity:0.8; margin-top:15px; line-height:1.8;">
+    • <strong>Guest Connect:</strong> Global speaker platform via Next.js & Django.<br>
+    • <strong>AI LMS:</strong> Scalable learning engine with OpenAI integration.<br>
+    • <strong>Infrastructure:</strong> High-availability Nginx/Redis load balancing.
   </div>
+  <button onclick="closeAll()" style="margin-top:20px; width:100%">Return to Void</button>
 </div>
 
-<div class="info-panel" id="panel-skills" style="--accent:#f9a8d4">
-  <button class="panel-close" onclick="closePanel('skills')">×</button>
-  <div class="panel-tag">Skills</div>
-  <div class="panel-title">My Tech Stack</div>
-  <div class="panel-body">Frontend, Backend, Cloud — I do it all.</div>
-  <div class="panel-tags">
-    <span class="ptag">React</span><span class="ptag">Next.js</span><span class="ptag">TypeScript</span>
-    <span class="ptag">Python</span><span class="ptag">Django</span><span class="ptag">Node.js</span>
-    <span class="ptag">PostgreSQL</span><span class="ptag">MongoDB</span><span class="ptag">Redis</span>
-    <span class="ptag">Docker</span><span class="ptag">Kubernetes</span><span class="ptag">GCP</span>
-    <span class="ptag">AWS</span><span class="ptag">GraphQL</span><span class="ptag">TailwindCSS</span>
-    <span class="ptag">Redux</span><span class="ptag">Celery</span><span class="ptag">Nginx</span>
-    <span class="ptag">CI/CD</span><span class="ptag">GitHub Actions</span>
-  </div>
-</div>
+<div id="canvas-wrap"></div>
 
-<div class="info-panel" id="panel-contact" style="--accent:#fcd34d">
-  <button class="panel-close" onclick="closePanel('contact')">×</button>
-  <div class="panel-tag">Contact</div>
-  <div class="panel-title">Let's Build Something Great</div>
-  <div class="panel-body">
-    I'm open to full-time roles, freelance contracts, and interesting collaborations.<br><br>
-    📧 <strong>collinskirwack@gmail.com</strong><br>
-    📱 <strong>0725 468 775</strong><br>
-    🌍 <strong>Ngong' Hills, Nairobi, Kenya</strong><br><br>
-    <a href="https://github.com/Kirwa-web" style="color:#fcd34d">github.com/Kirwa-web</a>
-  </div>
-</div>
-
-<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
 <script>
-// ── SCENE SETUP ─────────────────────────────────────────────────────────────
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0x87ceeb, 1);
+let scene, camera, renderer, player, clock;
+let monoliths = [];
+let keys = {};
 
-const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050507);
+  scene.fog = new THREE.Fog(0x050507, 10, 60);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 200);
-camera.position.set(0, 8, 12);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
 
-// ── LIGHTS ──────────────────────────────────────────────────────────────────
-const sun = new THREE.DirectionalLight(0xfff4e0, 1.4);
-sun.position.set(20, 30, 10);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.near = 0.1;
-sun.shadow.camera.far = 100;
-sun.shadow.camera.left = -40;
-sun.shadow.camera.right = 40;
-sun.shadow.camera.top = 40;
-sun.shadow.camera.bottom = -40;
-scene.add(sun);
-scene.add(new THREE.AmbientLight(0x6699cc, 0.6));
-const hemi = new THREE.HemisphereLight(0x87ceeb, 0x4a7c59, 0.4);
-scene.add(hemi);
+  // Deep Grid Floor
+  const grid = new THREE.GridHelper(400, 80, 0x00f2ff, 0x0a0a0a);
+  scene.add(grid);
 
-// ── HELPERS ─────────────────────────────────────────────────────────────────
-function box(w,h,d,color,x,y,z,rx=0,ry=0){
-  const m = new THREE.Mesh(
-    new THREE.BoxGeometry(w,h,d),
-    new THREE.MeshLambertMaterial({color})
-  );
-  m.position.set(x,y,z); m.rotation.set(rx,ry,0);
-  m.castShadow=true; m.receiveShadow=true;
-  scene.add(m); return m;
-}
-function cyl(rt,rb,h,seg,color,x,y,z){
-  const m = new THREE.Mesh(
-    new THREE.CylinderGeometry(rt,rb,h,seg),
-    new THREE.MeshLambertMaterial({color})
-  );
-  m.position.set(x,y,z);
-  m.castShadow=true; m.receiveShadow=true;
-  scene.add(m); return m;
-}
-function sphere(r,color,x,y,z){
-  const m = new THREE.Mesh(
-    new THREE.SphereGeometry(r,8,6),
-    new THREE.MeshLambertMaterial({color})
-  );
-  m.position.set(x,y,z); m.castShadow=true;
-  scene.add(m); return m;
+  // Player Spark (Floating Light)
+  const pGeo = new THREE.SphereGeometry(0.12, 16, 16);
+  const pMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
+  player = new THREE.Mesh(pGeo, pMat);
+  const pLight = new THREE.PointLight(0x00f2ff, 3, 12);
+  player.add(pLight);
+  scene.add(player);
+
+  // Floating Monoliths (The Content)
+  createMonolith(0, -20, 0x00f2ff, 'about');
+  createMonolith(25, 0, 0xff00ff, 'projects');
+
+  clock = new THREE.Clock();
+  window.addEventListener('keydown', e => keys[e.code] = true);
+  window.addEventListener('keyup', e => keys[e.code] = false);
+  animate();
 }
 
-// ── GROUND ───────────────────────────────────────────────────────────────────
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(120,120,20,20),
-  new THREE.MeshLambertMaterial({color:0x5a9e4b})
-);
-ground.rotation.x = -Math.PI/2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Roads
-function road(w,d,x,z,ry=0){
-  const r = new THREE.Mesh(
-    new THREE.PlaneGeometry(w,d),
-    new THREE.MeshLambertMaterial({color:0x555566})
-  );
-  r.rotation.x=-Math.PI/2; r.rotation.z=ry;
-  r.position.set(x,0.01,z); r.receiveShadow=true;
-  scene.add(r);
-}
-road(4,80,0,0);   // north-south
-road(80,4,0,0,Math.PI/2); // east-west
-
-// ── ZONES ────────────────────────────────────────────────────────────────────
-// ABOUT zone — North (+Z area) — blue house
-function makeHouse(x,z,color,roofColor){
-  box(5,3,4,color,x,1.5,z);
-  // Roof as pyramid using cone
-  const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(3.8,2,4),
-    new THREE.MeshLambertMaterial({color:roofColor})
-  );
-  roof.position.set(x,3.8,z); roof.rotation.y=Math.PI/4;
-  roof.castShadow=true; scene.add(roof);
-  // Door
-  box(0.8,1.4,0.1,0x8B4513,x,0.7,z+2.05);
-  // Windows
-  box(0.8,0.7,0.1,0x87ceeb,x-1.5,1.8,z+2.05);
-  box(0.8,0.7,0.1,0x87ceeb,x+1.5,1.8,z+2.05);
-}
-makeHouse(0,-18,0x4a90d9,0x2c5aa0);
-
-// PROJECTS zone — East (+X) — green building
-function makeOffice(x,z,color){
-  box(5,6,5,color,x,3,z);
-  for(let i=0;i<3;i++) for(let j=0;j<2;j++){
-    box(0.8,0.9,0.1,0x87ceeb,x-1.2+j*2.4,4+i*1.5,z+2.55);
-  }
-  box(1,1.5,0.1,0x8B4513,x,0.75,z+2.55);
-}
-makeOffice(18,0,0x2d8a4e);
-
-// SKILLS zone — West (-X) — orange lab
-function makeLab(x,z){
-  box(6,4,6,0xe07020,x,2,z);
-  box(6.4,0.3,6.4,0xc06010,x,4.15,z);
-  // Antenna
-  box(0.1,2,0.1,0x333,x+2,5.1,z+2);
-  sphere(0.2,0xff4444,x+2,6.2,z+2);
-  box(1.2,1.8,0.1,0x87ceeb,x,1.5,z+3.05);
-  box(1,1.6,0.1,0x555,x,0.8,z+3.05);
-}
-makeLab(-18,0);
-
-// CONTACT zone — South (+Z) — yellow cottage
-makeHouse(0,18,0xf5c842,0xd4a017);
-
-// Zone signs
-function makeSign(x,y,z,text,color){
-  // Post
-  box(0.1,2,0.1,0x8B4513,x,y,z);
-  // Sign board
-  const sign = box(2,0.8,0.1,color,x,y+1.2,z);
-  return sign;
-}
-makeSign(-1.5,-1,-14,''   ,0x4a90d9);
-makeSign(13,  -1, 1.5,'',0x2d8a4e);
-makeSign(-14, -1, 1.5,'',0xe07020);
-makeSign(-1.5,-1, 13,'',0xf5c842);
-
-// ── TREES ────────────────────────────────────────────────────────────────────
-function tree(x,z,h=1){
-  cyl(0,0,0,3,0x8B4513,x,0.6*h,z); // invisible trunk base
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.15*h,0.2*h,1.2*h,6),
-    new THREE.MeshLambertMaterial({color:0x8B4513})
-  );
-  trunk.position.set(x,0.6*h,z); trunk.castShadow=true; scene.add(trunk);
-  sphere(0.8*h,0x2d6a2d,x,1.6*h,z);
-  sphere(0.6*h,0x3d8a3d,x+0.3*h,1.3*h,z+0.2*h);
-  sphere(0.5*h,0x1d5a1d,x-0.2*h,1.4*h,z-0.3*h);
-}
-const treePos=[[-6,-6],[-8,-3],[-5,-8],[6,-6],[8,-3],[5,-8],
-               [-6,6],[-8,3],[-5,8],[6,6],[8,3],[5,8],
-               [-12,-12],[12,-12],[-12,12],[12,12],
-               [-20,-5],[-20,5],[20,-5],[20,5],
-               [-5,-20],[5,-20],[-5,20],[5,20],
-               [-15,-15],[15,-15],[-15,15],[15,15]];
-treePos.forEach(([x,z])=>tree(x,z,0.7+Math.random()*0.6));
-
-// ── FLOWERS ──────────────────────────────────────────────────────────────────
-function flower(x,z,color){
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.4,4),new THREE.MeshLambertMaterial({color:0x2d8a2d}));
-  stem.position.set(x,0.2,z); scene.add(stem);
-  const petals = new THREE.Mesh(new THREE.SphereGeometry(0.12,6,4),new THREE.MeshLambertMaterial({color}));
-  petals.position.set(x,0.45,z); scene.add(petals);
-}
-for(let i=0;i<60;i++){
-  const a=Math.random()*Math.PI*2, r=5+Math.random()*25;
-  const x=Math.cos(a)*r, z=Math.sin(a)*r;
-  if(Math.abs(x)>2.5&&Math.abs(z)>2.5) flower(x,z,[0xff6b8a,0xffdb4d,0xff9f43,0xa29bfe,0xffffff][Math.floor(Math.random()*5)]);
-}
-
-// ── CAR ──────────────────────────────────────────────────────────────────────
-const carGroup = new THREE.Group();
-scene.add(carGroup);
-
-// Body
-const carBody = new THREE.Mesh(
-  new THREE.BoxGeometry(1.6,0.6,3),
-  new THREE.MeshLambertMaterial({color:0xff4757})
-);
-carBody.position.y=0.4; carBody.castShadow=true;
-carGroup.add(carBody);
-
-// Cabin
-const cabin = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2,0.5,1.6),
-  new THREE.MeshLambertMaterial({color:0xff6b7a})
-);
-cabin.position.set(0,0.95,0.1); cabin.castShadow=true;
-carGroup.add(cabin);
-
-// Windows
-const winMat = new THREE.MeshLambertMaterial({color:0x87ceeb,transparent:true,opacity:0.7});
-const frontWin = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.35,0.05),winMat);
-frontWin.position.set(0,0.95,-0.71); carGroup.add(frontWin);
-const backWin = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.35,0.05),winMat);
-backWin.position.set(0,0.95,0.91); carGroup.add(backWin);
-
-// Wheels
-const wheelMat = new THREE.MeshLambertMaterial({color:0x2d3436});
-const hubMat = new THREE.MeshLambertMaterial({color:0xb2bec3});
-function makeWheel(x,z){
-  const g = new THREE.Group();
-  const w = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.22,12),wheelMat);
-  w.rotation.z=Math.PI/2; g.add(w);
-  const h = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.24,6),hubMat);
-  h.rotation.z=Math.PI/2; g.add(h);
-  g.position.set(x,0.28,z);
-  carGroup.add(g); return g;
-}
-const wheels = [makeWheel(-0.85,-1),makeWheel(0.85,-1),makeWheel(-0.85,1),makeWheel(0.85,1)];
-
-// Headlights
-const headMat = new THREE.MeshLambertMaterial({color:0xffffff,emissive:0xffff99,emissiveIntensity:0.5});
-[-0.5,0.5].forEach(x=>{
-  const h=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,0.05),headMat);
-  h.position.set(x,0.42,-1.53); carGroup.add(h);
-});
-
-carGroup.position.set(0,0,5);
-
-// ── CAR PHYSICS ──────────────────────────────────────────────────────────────
-const keys={};
-document.addEventListener('keydown',e=>{keys[e.code]=true;});
-document.addEventListener('keyup',e=>{keys[e.code]=false;});
-
-let carSpeed=0, carAngle=0;
-const CAR_ACC=0.006, CAR_FRICTION=0.92, CAR_MAX=0.18, CAR_TURN=0.035;
-
-// ── ZONES DETECTION ──────────────────────────────────────────────────────────
-const zones=[
-  {id:'about',   x:0,  z:-18, r:6, label:'ABOUT ME',   color:0x4a90d9},
-  {id:'projects',x:18, z:0,   r:6, label:'PROJECTS',   color:0x2d8a4e},
-  {id:'skills',  x:-18,z:0,   r:6, label:'SKILLS',     color:0xe07020},
-  {id:'contact', x:0,  z:18,  r:6, label:'CONTACT',    color:0xf5c842},
-];
-
-let currentZone=null, panelOpen=false;
-const zoneLabel=document.getElementById('zone-label');
-
-function openPanel(id){
-  document.getElementById('panel-'+id).classList.add('active');
-  panelOpen=true;
-}
-function closePanel(id){
-  document.getElementById('panel-'+id).classList.remove('active');
-  panelOpen=false;
-}
-
-document.addEventListener('keydown',e=>{
-  if(e.code==='Space'&&currentZone&&!panelOpen){
-    e.preventDefault(); openPanel(currentZone);
-  }
-  if(e.code==='Escape'&&panelOpen){
-    zones.forEach(z=>closePanel(z.id));
-  }
-});
-
-// ── CAMERA FOLLOW ────────────────────────────────────────────────────────────
-const camOffset = new THREE.Vector3(0,6,10);
-const camTarget = new THREE.Vector3();
-
-// ── CURSOR ───────────────────────────────────────────────────────────────────
-const cur=document.getElementById('cursor');
-document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
-
-// ── MUSIC ────────────────────────────────────────────────────────────────────
-let audioCtx=null, musicPlaying=false, gainNode=null, oscNodes=[];
-
-function createHymn(){
-  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0.08;
-  gainNode.connect(audioCtx.destination);
-
-  // Simple hymn-like melody — Amazing Grace notes approximation
-  const notes = [
-    261.63,329.63,392,329.63,392,440,392,329.63,
-    261.63,329.63,392,329.63,261.63,196,196,
-    261.63,329.63,392,329.63,392,440,392,523.25,
-    440,392,329.63,261.63,392,261.63
-  ];
-  const dur = 0.5;
-
-  notes.forEach((freq,i)=>{
-    const osc = audioCtx.createOscillator();
-    const env = audioCtx.createGain();
-    osc.type='sine';
-    osc.frequency.value=freq;
-    env.gain.setValueAtTime(0,audioCtx.currentTime+i*dur);
-    env.gain.linearRampToValueAtTime(0.3,audioCtx.currentTime+i*dur+0.05);
-    env.gain.linearRampToValueAtTime(0.2,audioCtx.currentTime+i*dur+dur*0.7);
-    env.gain.linearRampToValueAtTime(0,audioCtx.currentTime+i*dur+dur);
-    osc.connect(env); env.connect(gainNode);
-    osc.start(audioCtx.currentTime+i*dur);
-    osc.stop(audioCtx.currentTime+i*dur+dur);
-    oscNodes.push(osc);
+function createMonolith(x, z, color, id) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(3, 8, 1);
+  const mat = new THREE.MeshPhysicalMaterial({ 
+    color: color, 
+    metalness: 0.9, 
+    roughness: 0.1, 
+    transparent: true, 
+    opacity: 0.4,
+    transmission: 0.5 
   });
+  const mesh = new THREE.Mesh(geo, mat);
+  
+  const core = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 6, 0.5),
+    new THREE.MeshBasicMaterial({ color: color })
+  );
+  
+  group.add(mesh, core);
+  group.position.set(x, 4, z);
+  group.userData = { id: id };
+  scene.add(group);
+  monoliths.push(group);
 }
 
-function toggleMusic(){
-  const label=document.getElementById('music-label');
-  if(!musicPlaying){
-    createHymn();
-    musicPlaying=true;
-    label.textContent='Stop Hymn';
-    document.querySelector('.music-icon').textContent='♫';
-  } else {
-    if(audioCtx){ audioCtx.close(); audioCtx=null; }
-    oscNodes=[];
-    musicPlaying=false;
-    label.textContent='Play Hymn';
-    document.querySelector('.music-icon').textContent='♪';
-  }
+function closeAll() {
+  document.querySelectorAll('.info-panel').forEach(p => p.classList.remove('active'));
 }
 
-// ── CLOUDS ───────────────────────────────────────────────────────────────────
-const cloudGroup = new THREE.Group();
-scene.add(cloudGroup);
-function makeCloud(x,y,z){
-  const g=new THREE.Group();
-  [[0,0,0,1.2],[1.2,0.3,0,0.9],[-1,0.2,0,0.8],[0.5,0.5,0,0.7]].forEach(([cx,cy,cz,r])=>{
-    const s=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.9}));
-    s.position.set(cx,cy,cz); g.add(s);
-  });
-  g.position.set(x,y,z); cloudGroup.add(g);
-}
-for(let i=0;i<12;i++) makeCloud((Math.random()-.5)*80,12+Math.random()*8,(Math.random()-.5)*80);
-
-// ── LOADING ───────────────────────────────────────────────────────────────────
-let loadPct=0;
-const loadBar=document.getElementById('loadBar');
-const loadingEl=document.getElementById('loading');
-const nameplate=document.getElementById('nameplate');
-const controlsEl=document.getElementById('controls');
-const musicBtn=document.getElementById('music-btn');
-
-function finishLoading(){
-  loadingEl.style.opacity='0';
-  setTimeout(()=>{loadingEl.style.display='none';},1000);
-  nameplate.style.opacity='1';
-  controlsEl.style.opacity='1';
-  musicBtn.style.opacity='1';
-}
-
-let loadInterval=setInterval(()=>{
-  loadPct+=Math.random()*15;
-  if(loadPct>=100){loadPct=100;clearInterval(loadInterval);setTimeout(finishLoading,400);}
-  loadBar.style.width=loadPct+'%';
-},120);
-
-// ── ANIMATE ──────────────────────────────────────────────────────────────────
-const clock = new THREE.Clock();
-let prevTime=0;
-
-function animate(){
+function animate() {
   requestAnimationFrame(animate);
-  const t=clock.getElapsedTime();
-  const dt=t-prevTime; prevTime=t;
+  const t = clock.getElapsedTime();
+  const speed = 0.25;
 
-  if(!panelOpen){
-    // Acceleration
-    if(keys['ArrowUp']||keys['KeyW']) carSpeed=Math.min(carSpeed+CAR_ACC,CAR_MAX);
-    else if(keys['ArrowDown']||keys['KeyS']) carSpeed=Math.max(carSpeed-CAR_ACC,-CAR_MAX*0.5);
-    else carSpeed*=CAR_FRICTION;
+  if (keys['KeyW'] || keys['ArrowUp']) player.position.z -= speed;
+  if (keys['KeyS'] || keys['ArrowDown']) player.position.z += speed;
+  if (keys['KeyA'] || keys['ArrowLeft']) player.position.x -= speed;
+  if (keys['KeyD'] || keys['ArrowRight']) player.position.x += speed;
 
-    // Steering
-    if(Math.abs(carSpeed)>0.001){
-      if(keys['ArrowLeft']||keys['KeyA']) carAngle+=CAR_TURN*(carSpeed>0?1:-1);
-      if(keys['ArrowRight']||keys['KeyD']) carAngle-=CAR_TURN*(carSpeed>0?1:-1);
-    }
+  // Floating effect
+  player.position.y = 1.5 + Math.sin(t * 2) * 0.2;
 
-    // Move
-    carGroup.position.x += Math.sin(carAngle)*carSpeed;
-    carGroup.position.z += Math.cos(carAngle)*carSpeed;
-    carGroup.rotation.y = carAngle;
-
-    // Bounds
-    carGroup.position.x=Math.max(-55,Math.min(55,carGroup.position.x));
-    carGroup.position.z=Math.max(-55,Math.min(55,carGroup.position.z));
-
-    // Wheel spin
-    const spinAmt=carSpeed*3;
-    wheels.forEach(w=>{ w.children[0].rotation.x+=spinAmt; });
-  }
-
-  // Zone detection
-  let inZone=null;
-  zones.forEach(z=>{
-    const dx=carGroup.position.x-z.x, dz=carGroup.position.z-z.z;
-    if(Math.sqrt(dx*dx+dz*dz)<z.r) inZone=z.id;
-  });
-  if(inZone!==currentZone){
-    currentZone=inZone;
-    if(inZone){
-      const z=zones.find(z=>z.id===inZone);
-      zoneLabel.textContent=z.label+' — Press Space';
-      zoneLabel.style.opacity='1';
+  let nearby = false;
+  monoliths.forEach(m => {
+    const d = player.position.distanceTo(m.position);
+    m.position.y = 4 + Math.sin(t + m.position.x) * 0.5; // Monolith hover
+    
+    if(d < 8) {
+      nearby = m.userData.id;
+      m.rotation.y += 0.02;
+      if(keys['Space']) document.getElementById('panel-' + nearby).classList.add('active');
     } else {
-      zoneLabel.style.opacity='0';
+      m.rotation.y *= 0.9;
     }
-  }
+  });
 
-  // Camera follow
-  const idealCamPos = new THREE.Vector3(
-    carGroup.position.x + Math.sin(carAngle)*camOffset.z,
-    carGroup.position.y + camOffset.y,
-    carGroup.position.z + Math.cos(carAngle)*camOffset.z
-  );
-  camera.position.lerp(idealCamPos, 0.08);
-  camTarget.copy(carGroup.position).add(new THREE.Vector3(0,1,0));
-  camera.lookAt(camTarget);
+  const label = document.getElementById('zone-label');
+  label.style.opacity = nearby ? 1 : 0;
+  if(nearby) label.innerText = "ACCESSING " + nearby.toUpperCase() + " DATA";
 
-  // Cloud drift
-  cloudGroup.position.x = Math.sin(t*0.02)*5;
-
-  // Sun sway
-  sun.position.x = 20+Math.sin(t*0.05)*5;
-
-  renderer.render(scene,camera);
+  camera.position.lerp(new THREE.Vector3(player.position.x, 12, player.position.z + 18), 0.08);
+  camera.lookAt(player.position);
+  renderer.render(scene, camera);
 }
-animate();
 
-// ── RESIZE ───────────────────────────────────────────────────────────────────
-window.addEventListener('resize',()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+init();
 </script>
 </body>
 </html>
